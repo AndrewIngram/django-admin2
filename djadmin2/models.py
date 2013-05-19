@@ -187,31 +187,52 @@ class ModelAdmin2(BaseAdmin2):
     def get_api_detail_kwargs(self):
         return self.get_default_api_view_kwargs()
 
+    def get_context_data(self, request, *args, **kwargs):
+        """
+        Returns a dictionary of context variables to be added to every view
+        belonging to the `ModelAdmin2` instance. They are added after the view
+        itself has returned its `TemplateResponse` object.
+        """
+        return {
+            'has_add_permission': self.has_add_permission(request),
+            'has_edit_permission': self.has_edit_permission(request),
+            'has_delete_permission': self.has_delete_permission(request),
+        }
+
+    def view_wrapper(self, view):
+        def modify_context(request, *args, **kwargs):
+            response = view(request, *args, **kwargs)
+            if hasattr(response, 'context_data'):
+                response.context_data.update(self.get_context_data(request, *args, **kwargs))
+            return response
+        return modify_context
+
+
     def get_urls(self):
         return patterns('',
             url(
                 regex=r'^$',
-                view=self.index_view.as_view(**self.get_index_kwargs()),
+                view=self.view_wrapper(self.index_view.as_view(**self.get_index_kwargs())),
                 name=self.get_prefixed_view_name('index')
             ),
             url(
                 regex=r'^create/$',
-                view=self.create_view.as_view(**self.get_create_kwargs()),
+                view=self.view_wrapper(self.create_view.as_view(**self.get_create_kwargs())),
                 name=self.get_prefixed_view_name('create')
             ),
             url(
                 regex=r'^(?P<pk>[0-9]+)/$',
-                view=self.detail_view.as_view(**self.get_detail_kwargs()),
+                view=self.view_wrapper(self.detail_view.as_view(**self.get_detail_kwargs())),
                 name=self.get_prefixed_view_name('detail')
             ),
             url(
                 regex=r'^(?P<pk>[0-9]+)/update/$',
-                view=self.update_view.as_view(**self.get_update_kwargs()),
+                view=self.view_wrapper(self.update_view.as_view(**self.get_update_kwargs())),
                 name=self.get_prefixed_view_name('update')
             ),
             url(
                 regex=r'^(?P<pk>[0-9]+)/delete/$',
-                view=self.delete_view.as_view(**self.get_delete_kwargs()),
+                view=self.view_wrapper(self.delete_view.as_view(**self.get_delete_kwargs())),
                 name=self.get_prefixed_view_name('delete')
             ),
         )
@@ -238,6 +259,7 @@ class ModelAdmin2(BaseAdmin2):
     @property
     def api_urls(self):
         return self.get_api_urls(), None, None
+
 
 def create_extra_permissions(app, created_models, verbosity, **kwargs):
     """

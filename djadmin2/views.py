@@ -51,15 +51,6 @@ class AdminModel2Mixin(Admin2Mixin, AccessMixin):
 
         return super(AdminModel2Mixin, self).dispatch(request, *args, **kwargs)
 
-    def get_context_data(self, **kwargs):
-        context = super(AdminModel2Mixin, self).get_context_data(**kwargs)
-        context.update({
-            'has_add_permission': self.model_admin.has_add_permission(self.request),
-            'has_edit_permission': self.model_admin.has_edit_permission(self.request),
-            'has_delete_permission': self.model_admin.has_delete_permission(self.request),
-        })
-        return context
-
     def get_model(self):
         return self.model
 
